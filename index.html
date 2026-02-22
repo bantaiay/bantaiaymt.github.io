@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!--
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  CONTENT SECURITY POLICY (tightened — no external font calls)    ║
+    ║  • script-src 'unsafe-inline'  needed for our inline JS block    ║
+    ║  • style-src  'unsafe-inline'  needed for inline <style>         ║
+    ║  • connect-src 'none'          zero outbound network from JS     ║
+    ║  • font-src   'none'           all fonts are system / local      ║
+    ║  • object-src 'none'           blocks plugins                    ║
+    ║  • base-uri   'none'           prevents base-tag hijacking       ║
+    ║  • form-action 'none'          no form submissions               ║
+    ╚══════════════════════════════════════════════════════════════════╝
+  -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';" />
+
+  <title>How are you doing today? — Wellspring</title>
+  <!-- No external font requests — 100% offline. System fonts used throughout. -->
+
+  <style>
+    /* ============================================================
+       CSS CUSTOM PROPERTIES — Light theme
+       All colours are variables. Dark mode = redefining them on body.dark.
+       Fonts: Georgia (universally pre-installed, elegant serif) for display;
+              system-ui stack (San Francisco / Segoe UI / Roboto) for body.
+              Zero network calls, zero rendering delay.
+       ============================================================ */
+    :root {
+      --clr-parchment:   #F6F0E4;
+      --clr-parchment-2: #EDE4D0;
+      --clr-card:        #FDFAF5;
+      --clr-text:        #3A2515;
+      --clr-text-soft:   #7A6050;
+      --clr-muted:       #A09080;
+      --clr-brown:       #5C3D2E;
+      --clr-brown-light: #8B6347;
+      --clr-terracotta:  #C4714A;
+      --clr-amber:       #D4A853;
+      --clr-sage:        #7A9E7E;
+      --clr-border:      #D8CCBA;
+      --clr-shadow:      rgba(58, 37, 21, 0.12);
+      --clr-danger:      #C0392B;
+
+      /* System font stacks — beautiful on every platform, zero downloads */
+      --font-display: Georgia, 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+      --font-body:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                      Tahoma, Geneva, sans-serif;
+
+      --radius-sm: 6px; --radius-md: 12px;
+      --radius-lg: 20px; --radius-xl: 30px;
+      --transition: 0.2s ease;
+    }
+
+    /* ============================================================
+       DARK THEME — only variable values change; no selector duplication
+       ============================================================ */
+    body.dark {
+      --clr-parchment:   #1C1510;
+      --clr-parchment-2: #261D15;
+      --clr-card:        #2E2118;
+      --clr-text:        #EAD8C4;
+      --clr-text-soft:   #B09880;
+      --clr-muted:       #8A7868;
+      --clr-brown:       #D4AA7D;
+      --clr-brown-light: #B8906A;
+      --clr-terracotta:  #D4805A;
+      --clr-amber:       #D4A853;
+      --clr-sage:        #7A9E7E;
+      --clr-border:      #3D3028;
+      --clr-shadow:      rgba(0, 0, 0, 0.35);
+    }
+
+    /* ============================================================ RESET */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--clr-parchment);
+      color: var(--clr-text);
+      min-height: 100vh;
+      /* Inline SVG paper grain — zero network call */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      padding-left:  env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    /* ============================================================ LAYOUT */
+    .app-wrapper { max-width: 780px; margin: 0 auto; padding: 0 20px 80px; }
+
+    /* ============================================================ HEADER */
+    .app-header {
+      text-align: center; padding: 36px 0 24px; position: relative;
+    }
+    .app-header::after {
+      content: ''; display: block; width: 80px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--clr-terracotta), transparent);
+      margin: 14px auto 0;
+    }
+    .app-brand {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--clr-terracotta);
+      margin-bottom: 8px; display: block;
+    }
+    .app-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 5vw, 2.3rem);
+      font-weight: normal; letter-spacing: 0.01em;
+      color: var(--clr-brown); line-height: 1.25;
+    }
+    .app-header h1 em { color: var(--clr-terracotta); font-style: italic; }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: absolute; top: 36px; right: 0;
+      background: var(--clr-parchment-2); border: 1.5px solid var(--clr-border);
+      border-radius: var(--radius-xl); padding: 7px 12px; cursor: pointer;
+      font-size: 1rem; line-height: 1; color: var(--clr-text-soft);
+      transition: all var(--transition);
+      min-height: 44px; min-width: 44px;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .theme-toggle:hover { border-color: var(--clr-amber); color: var(--clr-brown); }
+    .theme-label {
+      font-size: 0.67rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; display: none;
+    }
+    @media (min-width: 420px) { .theme-label { display: inline; } }
+
+    /* ============================================================ TABS */
+    .tab-nav {
+      display: flex; gap: 4px; background: var(--clr-parchment-2);
+      border-radius: var(--radius-xl); padding: 5px; margin-bottom: 24px;
+      border: 1px solid var(--clr-border);
+    }
+    .tab-btn {
+      flex: 1; min-height: 44px; padding: 10px 8px;
+      border: none; background: transparent;
+      border-radius: calc(var(--radius-xl) - 4px);
+      font-family: var(--font-body); font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--clr-muted); cursor: pointer;
+      transition: all var(--transition); white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn:hover { color: var(--clr-brown-light); }
+    .tab-btn.active {
+      background: var(--clr-card); color: var(--clr-brown);
+      box-shadow: 0 2px 8px var(--clr-shadow);
+    }
+
+    /* ============================================================ PANELS */
+    .tab-panel { display: none; animation: fadeUp 0.3s ease; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================ CARD */
+    .card {
+      background: var(--clr-card); border: 1px solid var(--clr-border);
+      border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px;
+      box-shadow: 0 2px 12px var(--clr-shadow);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+    .card-title {
+      font-family: var(--font-display); font-size: 1.2rem; font-weight: bold;
+      color: var(--clr-brown); margin-bottom: 18px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-title .icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--clr-parchment-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; flex-shrink: 0;
+    }
+
+    /* ============================================================ FORMS */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 0.74rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--clr-text-soft); margin-bottom: 8px;
+    }
+    /* 16px font-size prevents iOS auto-zoom on input focus */
+    .form-input, .form-select {
+      width: 100%; min-height: 44px; padding: 11px 14px;
+      border: 1.5px solid var(--clr-border); border-radius: var(--radius-md);
+      background: var(--clr-parchment); font-family: var(--font-body);
+      font-size: 16px; color: var(--clr-text);
+      transition: border-color var(--transition), box-shadow var(--transition),
+                  background-color 0.3s ease, color 0.3s ease;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--clr-terracotta);
+      box-shadow: 0 0 0 3px rgba(196,113,74,0.15);
+    }
+    .form-input::placeholder { color: var(--clr-muted); }
+    .form-select {
+      appearance: none; -webkit-appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B6347' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 40px;
+    }
+    .form-hint {
+      font-size: 0.74rem; color: var(--clr-muted);
+      margin-top: 7px; font-style: italic; line-height: 1.5;
+    }
+
+    /* ============================================================ FULLNESS TOGGLES */
+    .toggle-group { display: flex; gap: 10px; }
+    .toggle-btn {
+      flex: 1; min-height: 44px; padding: 10px 12px;
+      border: 1.5px solid var(--clr-border); border-radius: var(--radius-md);
+      background: transparent; font-family: var(--font-body);
+      font-size: 0.85rem; font-weight: 500; color: var(--clr-text-soft);
+      cursor: pointer; transition: all var(--transition); text-align: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle-btn:hover { border-color: var(--clr-brown-light); color: var(--clr-brown); }
+    .toggle-btn.selected-yes {
+      background: rgba(122,158,126,0.18); border-color: var(--clr-sage);
+      color: var(--clr-sage); font-weight: 700;
+    }
+    .toggle-btn.selected-no {
+      background: rgba(196,113,74,0.12); border-color: var(--clr-terracotta);
+      color: var(--clr-terracotta); font-weight: 700;
+    }
+
+    /* ============================================================ WATER INPUT */
+    .water-control {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .stepper-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1.5px solid var(--clr-border); background: var(--clr-parchment);
+      font-size: 1.3rem; color: var(--clr-brown-light); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition); flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .stepper-btn:hover {
+      border-color: var(--clr-terracotta); color: var(--clr-terracotta);
+      background: rgba(196,113,74,0.08);
+    }
+    .stepper-btn:active { transform: scale(0.9); }
+    /* Typed number input for water */
+    .water-number-input {
+      width: 80px; min-height: 44px;
+      border: 1.5px solid var(--clr-border); border-radius: var(--radius-md);
+      background: var(--clr-parchment); font-family: var(--font-display);
+      font-size: 1.6rem; font-weight: normal; color: var(--clr-brown);
+      text-align: center; outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition),
+                  background-color 0.3s ease;
+      /* Remove browser default number spinners */
+      -moz-appearance: textfield; appearance: textfield;
+    }
+    .water-number-input::-webkit-outer-spin-button,
+    .water-number-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .water-number-input:focus {
+      border-color: var(--clr-terracotta);
+      box-shadow: 0 0 0 3px rgba(196,113,74,0.15);
+    }
+    .water-unit-label {
+      font-size: 0.8rem; color: var(--clr-muted); font-weight: 500;
+    }
+    /* Filled-only bottle display — no grey outlines that imply a cap */
+    .bottle-row {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      margin-top: 14px; min-height: 28px;
+    }
+    .bottle {
+      font-size: 1.25rem;
+      animation: popIn 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    /* ============================================================ MOOD CHIPS */
+    .mood-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .mood-chip {
+      padding: 8px 18px; border-radius: var(--radius-xl);
+      border: 1.5px solid var(--clr-border); background: transparent;
+      font-family: var(--font-body); font-size: 0.85rem; font-weight: 500;
+      color: var(--clr-text-soft); cursor: pointer;
+      transition: all var(--transition); user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mood-chip.selected { color: #fff; border-color: transparent; }
+    .custom-mood-row { display: flex; gap: 8px; margin-top: 10px; }
+    .custom-mood-row .form-input { flex: 1; }
+    .btn-secondary {
+      min-height: 44px; padding: 10px 18px; background: var(--clr-brown);
+      color: #fff; border: none; border-radius: var(--radius-md);
+      font-family: var(--font-body); font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-secondary:hover { background: var(--clr-terracotta); }
+
+    /* ============================================================ SUBMIT */
+    .btn-submit {
+      width: 100%; min-height: 52px; padding: 15px;
+      background: linear-gradient(135deg, var(--clr-terracotta), var(--clr-amber));
+      color: #fff; border: none; border-radius: var(--radius-md);
+      font-family: var(--font-display); font-size: 1.1rem; font-weight: bold;
+      letter-spacing: 0.03em; cursor: pointer;
+      transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 4px 14px rgba(196,113,74,0.35);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-submit:hover {
+      opacity: 0.92; transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(196,113,74,0.4);
+    }
+    .btn-submit:active { transform: translateY(0); }
+
+    /* ============================================================ TOAST (minor alerts) */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--clr-brown); color: #fff;
+      padding: 12px 24px; border-radius: var(--radius-xl);
+      font-size: 0.88rem; font-weight: 500;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 1000; white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ============================================================ CONFIRM MODAL
+       Replaces browser confirm() — works in all environments including iframes.
+       Browser confirm() is suppressed on GitHub Pages previews and some mobile
+       browsers, making delete buttons appear broken. This modal is always reliable.
+    ============================================================ */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);
+      z-index: 900; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.visible { display: flex; animation: fadeOverlay 0.2s ease; }
+    @keyframes fadeOverlay {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    .modal-box {
+      background: var(--clr-card); border: 1px solid var(--clr-border);
+      border-radius: var(--radius-lg); padding: 28px 28px 22px;
+      max-width: 380px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.88); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .modal-title {
+      font-family: var(--font-display); font-size: 1.1rem; font-weight: bold;
+      color: var(--clr-brown); margin-bottom: 10px;
+    }
+    .modal-msg {
+      font-size: 0.88rem; color: var(--clr-text-soft); line-height: 1.6;
+      margin-bottom: 22px;
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-btn {
+      min-height: 40px; padding: 9px 20px; border-radius: var(--radius-md);
+      font-family: var(--font-body); font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; transition: all var(--transition); border: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modal-btn-cancel {
+      background: var(--clr-parchment-2); color: var(--clr-text-soft);
+      border: 1.5px solid var(--clr-border);
+    }
+    .modal-btn-cancel:hover { border-color: var(--clr-brown-light); color: var(--clr-brown); }
+    .modal-btn-confirm {
+      background: var(--clr-danger); color: #fff;
+    }
+    .modal-btn-confirm:hover { opacity: 0.88; }
+
+    /* ============================================================ SAVE CELEBRATION MODAL */
+    .save-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(58,37,21,0.55); backdrop-filter: blur(6px);
+      z-index: 950; align-items: center; justify-content: center; padding: 20px;
+    }
+    .save-modal-overlay.visible { display: flex; animation: fadeOverlay 0.3s ease; }
+    .save-modal-box {
+      background: var(--clr-card); border: 1px solid var(--clr-border);
+      border-radius: 28px; padding: 44px 36px 36px;
+      max-width: 400px; width: 100%; text-align: center;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+      animation: saveModalIn 0.45s cubic-bezier(0.34,1.56,0.64,1);
+      position: relative; overflow: hidden;
+    }
+    .save-modal-box::before {
+      /* Decorative warm gradient halo at top */
+      content: '';
+      position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+      width: 220px; height: 220px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(212,168,83,0.22) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    @keyframes saveModalIn {
+      from { transform: scale(0.82) translateY(24px); opacity: 0; }
+      to   { transform: scale(1)    translateY(0);    opacity: 1; }
+    }
+    .save-modal-ornament {
+      font-size: 2.4rem; margin-bottom: 18px; display: block;
+      animation: floatUp 2.5s ease-in-out infinite;
+    }
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-6px); }
+    }
+    .save-modal-title {
+      font-family: var(--font-display); font-size: 1.45rem; font-weight: bold;
+      color: var(--clr-brown); line-height: 1.35; margin-bottom: 14px;
+      font-style: italic;
+    }
+    .save-modal-msg {
+      font-size: 0.92rem; color: var(--clr-text-soft); line-height: 1.75;
+      margin-bottom: 30px;
+    }
+    .save-modal-divider {
+      width: 60px; height: 1.5px;
+      background: linear-gradient(90deg, transparent, var(--clr-amber), transparent);
+      margin: 0 auto 20px;
+    }
+    .save-modal-close {
+      min-height: 46px; padding: 12px 32px;
+      background: linear-gradient(135deg, var(--clr-terracotta), var(--clr-amber));
+      color: #fff; border: none; border-radius: var(--radius-xl);
+      font-family: var(--font-display); font-size: 1rem; font-weight: bold;
+      letter-spacing: 0.04em; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(196,113,74,0.35);
+      transition: opacity var(--transition), transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .save-modal-close:hover { opacity: 0.9; transform: translateY(-1px); }
+    .save-modal-close:active { transform: translateY(0); }
+
+    /* ============================================================ HISTORY TAB */
+    .history-controls { margin-bottom: 20px; }
+    /* Time range filters */
+    .history-filters {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .filter-btn {
+      min-height: 40px; padding: 8px 16px; border-radius: var(--radius-xl);
+      border: 1.5px solid var(--clr-border); background: transparent;
+      font-family: var(--font-body); font-size: 0.74rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--clr-muted); cursor: pointer; transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .filter-btn:hover { border-color: var(--clr-brown-light); color: var(--clr-brown); }
+    .filter-btn.active { background: var(--clr-brown); color: #fff; border-color: var(--clr-brown); }
+    /* Mood filter row — horizontal scroll on small screens */
+    .mood-filter-label {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--clr-muted);
+      margin-bottom: 8px; display: block;
+    }
+    .mood-filter-row {
+      display: flex; gap: 7px; flex-wrap: wrap;
+    }
+    .mood-filter-chip {
+      padding: 6px 14px; border-radius: var(--radius-xl);
+      border: 1.5px solid transparent; background: transparent;
+      font-family: var(--font-body); font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; transition: all var(--transition); white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mood-filter-chip.active { color: #fff; }
+
+    .empty-state { text-align: center; padding: 50px 20px; color: var(--clr-muted); }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+    .empty-title {
+      font-family: var(--font-display); font-size: 1.4rem;
+      font-style: italic; color: var(--clr-border); margin-bottom: 6px;
+    }
+    .entry-card {
+      background: var(--clr-card); border: 1px solid var(--clr-border);
+      border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 12px;
+      box-shadow: 0 2px 8px var(--clr-shadow);
+      transition: box-shadow var(--transition), background-color 0.3s ease;
+    }
+    .entry-card:hover { box-shadow: 0 4px 16px var(--clr-shadow); }
+    .entry-header {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 10px;
+    }
+    .entry-date {
+      font-family: var(--font-display); font-size: 1rem;
+      font-weight: bold; color: var(--clr-brown);
+    }
+    .entry-time { font-size: 0.74rem; color: var(--clr-muted); margin-top: 2px; }
+    .entry-delete {
+      background: transparent; border: none; color: var(--clr-muted);
+      cursor: pointer; min-height: 44px; min-width: 44px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm); transition: all var(--transition);
+      font-size: 0.9rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .entry-delete:hover { color: var(--clr-danger); background: rgba(192,57,43,0.08); }
+    .entry-moods { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .entry-mood-tag {
+      padding: 4px 12px; border-radius: var(--radius-xl);
+      font-size: 0.72rem; font-weight: 700; color: #fff;
+    }
+    .entry-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+    .entry-stat {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.78rem; color: var(--clr-text-soft);
+    }
+
+    /* ============================================================ SETTINGS */
+    .settings-description {
+      font-size: 0.85rem; color: var(--clr-text-soft);
+      margin-bottom: 20px; line-height: 1.65;
+    }
+    .mood-settings-list { display: flex; flex-direction: column; gap: 10px; }
+    .mood-setting-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; background: var(--clr-parchment);
+      border-radius: var(--radius-md); border: 1px solid var(--clr-border);
+      min-height: 52px; transition: background-color 0.3s ease;
+    }
+    .mood-setting-swatch { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .mood-setting-label {
+      flex: 1; font-size: 0.9rem; font-weight: 600; color: var(--clr-text);
+      transition: opacity var(--transition);
+    }
+    .mood-setting-badge {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 2px 8px; border-radius: var(--radius-xl);
+      border: 1px solid var(--clr-border); color: var(--clr-muted); white-space: nowrap;
+    }
+    .switch {
+      position: relative; display: inline-block;
+      width: 44px; height: 26px; flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: var(--clr-border); border-radius: 34px;
+      transition: background var(--transition);
+    }
+    .slider::before {
+      content: ''; position: absolute;
+      width: 20px; height: 20px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%;
+      transition: transform var(--transition); box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .switch input:checked + .slider { background: var(--clr-sage); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .mood-setting-row.inactive .mood-setting-label { opacity: 0.4; }
+    .mood-setting-row.inactive .mood-setting-swatch { filter: grayscale(1); opacity: 0.35; }
+    .btn-icon {
+      background: transparent; border: none; color: var(--clr-muted);
+      cursor: pointer; min-width: 44px; min-height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm); transition: all var(--transition);
+      font-size: 0.9rem; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-icon:hover { color: var(--clr-danger); }
+    .add-mood-section {
+      margin-top: 20px; padding-top: 20px;
+      border-top: 1px dashed var(--clr-border);
+    }
+    .color-picker-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .color-dot {
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+      border: 2.5px solid transparent;
+      transition: border-color var(--transition), transform var(--transition);
+      flex-shrink: 0; position: relative;
+    }
+    /* Expand tap area without changing visual size */
+    .color-dot::after { content: ''; position: absolute; inset: -8px; }
+    .color-dot:hover { transform: scale(1.15); }
+    .color-dot.selected { border-color: var(--clr-brown); transform: scale(1.15); }
+    .data-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-data {
+      flex: 1; min-width: 130px; min-height: 44px; padding: 10px 16px;
+      border: 1.5px solid var(--clr-border); border-radius: var(--radius-md);
+      background: transparent; font-family: var(--font-body);
+      font-size: 0.85rem; font-weight: 600; color: var(--clr-text-soft);
+      cursor: pointer; transition: all var(--transition); text-align: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-data:hover { border-color: var(--clr-brown-light); color: var(--clr-brown); }
+    .btn-data.danger:hover { border-color: var(--clr-danger); color: var(--clr-danger); }
+
+    /* ============================================================ RESPONSIVE */
+    @media (max-width: 480px) {
+      .app-wrapper { padding: 0 14px 80px; }
+      .app-header { padding: 28px 0 20px; }
+      .card { padding: 18px; }
+      .tab-btn { font-size: 0.7rem; letter-spacing: 0.02em; }
+      .entry-stats { gap: 10px; }
+      .theme-toggle { top: 28px; }
+      .toggle-btn { font-size: 0.8rem; padding: 8px 8px; }
+      .save-modal-box { padding: 36px 24px 28px; }
+      .modal-box { padding: 22px 20px 18px; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app-wrapper">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <span class="app-brand">Wellspring</span>
+    <h1>How are you doing <em>today?</em></h1>
+    <button class="theme-toggle" id="theme-toggle-btn"
+      aria-label="Switch to dark mode" title="Toggle dark / light mode">
+      <span id="theme-icon">🌙</span>
+      <span class="theme-label" id="theme-label">Night</span>
+    </button>
+  </header>
+
+  <!-- TAB NAV -->
+  <nav class="tab-nav" role="tablist" aria-label="Main navigation">
+    <button class="tab-btn active" role="tab" aria-selected="true"
+      aria-controls="tab-log" data-tab="log">🌿 Log</button>
+    <button class="tab-btn" role="tab" aria-selected="false"
+      aria-controls="tab-history" data-tab="history">📖 History</button>
+    <button class="tab-btn" role="tab" aria-selected="false"
+      aria-controls="tab-settings" data-tab="settings">⚙️ Settings</button>
+  </nav>
+
+  <!-- ====================================================
+       TAB 1 — LOG
+       ==================================================== -->
+  <section class="tab-panel active" id="tab-log" role="tabpanel">
+
+    <!-- FOOD -->
+    <div class="card">
+      <h2 class="card-title">
+        <span class="icon" aria-hidden="true">🍽</span> Last Meal
+      </h2>
+      <div class="form-group">
+        <label class="form-label" for="meal-time">When did you last eat?</label>
+        <select id="meal-time" class="form-select">
+          <option value="">— choose a time of day —</option>
+          <option value="Early Morning">Early Morning &nbsp;(before 8 am)</option>
+          <option value="Morning">Morning &nbsp;(8 am – 12 pm)</option>
+          <option value="Afternoon">Afternoon &nbsp;(12 pm – 5 pm)</option>
+          <option value="Evening">Evening &nbsp;(5 pm – 9 pm)</option>
+          <option value="Night">Night &nbsp;(after 9 pm)</option>
+          <option value="Haven't eaten yet today">Haven't eaten yet today</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Did you feel full afterwards?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" id="btn-full-yes"
+            aria-pressed="false" onclick="selectFullness('yes')">✓ Yes, satisfied</button>
+          <button class="toggle-btn" id="btn-full-no"
+            aria-pressed="false" onclick="selectFullness('no')">✗ Not really</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WATER -->
+    <div class="card">
+      <h2 class="card-title">
+        <span class="icon" aria-hidden="true">💧</span> Water Intake
+      </h2>
+      <label class="form-label" for="water-input" style="margin-bottom:14px;">
+        Bottles consumed in the past hour
+      </label>
+      <!--
+        Direct typed input + helper +/− buttons.
+        The input accepts any number; buttons adjust by 1.
+        Max enforced at 99 in JS; spinner arrows are hidden via CSS.
+      -->
+      <div class="water-control">
+        <button class="stepper-btn" onclick="changeWater(-1)" aria-label="Decrease by 1">−</button>
+        <input type="number" id="water-input" class="water-number-input"
+          value="0" min="0" max="99" step="1"
+          aria-label="Number of water bottles consumed"
+          oninput="onWaterInput(this)"
+          onblur="onWaterBlur(this)" />
+        <span class="water-unit-label">bottles</span>
+        <button class="stepper-btn" onclick="changeWater(1)" aria-label="Increase by 1">+</button>
+      </div>
+      <div class="bottle-row" id="bottle-row" aria-hidden="true"></div>
+    </div>
+
+    <!-- MOOD -->
+    <div class="card">
+      <h2 class="card-title">
+        <span class="icon" aria-hidden="true">🌸</span> Mood Right Now
+      </h2>
+      <p class="form-label" style="margin-bottom:12px;">Select all that apply</p>
+      <div class="mood-chips" id="mood-chip-container"
+        role="group" aria-label="Mood selection">
+        <!-- Populated by JS -->
+      </div>
+      <div class="custom-mood-row">
+        <input type="text" id="custom-mood-input" class="form-input"
+          placeholder="Describe another mood…" maxlength="40"
+          aria-label="Enter a custom mood"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addQuickMood();}" />
+        <button class="btn-secondary" onclick="addQuickMood()">Add</button>
+      </div>
+      <p class="form-hint">
+        New moods are saved to your list automatically and can be managed in Settings.
+      </p>
+    </div>
+
+    <button class="btn-submit" onclick="saveEntry()">Save this moment →</button>
+
+  </section>
+
+  <!-- ====================================================
+       TAB 2 — HISTORY
+       ==================================================== -->
+  <section class="tab-panel" id="tab-history" role="tabpanel">
+    <div class="history-controls">
+      <!-- Time range filter (static HTML) -->
+      <div class="history-filters" role="group" aria-label="Filter by time range">
+        <button class="filter-btn active" data-range="all">All time</button>
+        <button class="filter-btn" data-range="7">Last 7 days</button>
+        <button class="filter-btn" data-range="30">Last 30 days</button>
+      </div>
+      <!-- Mood filter (dynamic — rebuilt by renderMoodFilter()) -->
+      <span class="mood-filter-label" id="mood-filter-label" style="display:none;">
+        Filter by mood
+      </span>
+      <div class="mood-filter-row" id="mood-filter-row"
+        role="group" aria-label="Filter by mood">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+    <div id="history-list" aria-live="polite"></div>
+  </section>
+
+  <!-- ====================================================
+       TAB 3 — SETTINGS
+       ==================================================== -->
+  <section class="tab-panel" id="tab-settings" role="tabpanel">
+
+    <div class="card">
+      <h2 class="card-title">
+        <span class="icon" aria-hidden="true">🎨</span> Manage Moods
+      </h2>
+      <p class="settings-description">
+        Activate or deactivate moods shown in the Log form. Deactivating a mood hides it
+        from new entries but leaves all past records completely intact — history is never
+        altered. Custom moods can be permanently deleted; default moods can only be toggled.
+      </p>
+      <div class="mood-settings-list" id="mood-settings-list" role="list"></div>
+
+      <div class="add-mood-section">
+        <label class="form-label" style="margin-bottom:10px;">Add a New Mood</label>
+        <div class="color-picker-row" id="new-mood-color-row"
+          role="group" aria-label="Choose a colour for the new mood"></div>
+        <div class="custom-mood-row">
+          <input type="text" id="new-mood-name" class="form-input"
+            placeholder="e.g. Overwhelmed, Grateful, Restless…" maxlength="40"
+            aria-label="New mood name"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addNewMood();}" />
+          <button class="btn-secondary" onclick="addNewMood()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">
+        <span class="icon" aria-hidden="true">📦</span> Your Data
+      </h2>
+      <p class="settings-description">
+        Everything is stored locally in your browser — nothing is ever sent anywhere.
+        Export a JSON backup anytime, or clear everything to start fresh.
+      </p>
+      <div class="data-actions">
+        <button class="btn-data" onclick="exportData()">⬇ Export backup</button>
+        <button class="btn-data danger" onclick="promptClearAllData()">🗑 Clear all data</button>
+      </div>
+    </div>
+
+  </section>
+
+</div><!-- /app-wrapper -->
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ====================================================
+     CONFIRM MODAL
+     Replaces browser confirm() — reliable in all environments.
+     confirm() is silently suppressed in iframes, strict mobile browsers,
+     and on some GitHub Pages deployments, making buttons appear broken.
+     ==================================================== -->
+<div class="modal-overlay" id="modal-overlay"
+  role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <p class="modal-title" id="modal-title"></p>
+    <p class="modal-msg"   id="modal-msg"></p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" id="modal-cancel">Cancel</button>
+      <button class="modal-btn modal-btn-confirm" id="modal-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     SAVE CELEBRATION MODAL
+     ==================================================== -->
+<div class="save-modal-overlay" id="save-modal-overlay" role="dialog" aria-modal="true">
+  <div class="save-modal-box">
+    <span class="save-modal-ornament" aria-hidden="true">✦</span>
+    <p class="save-modal-title">Thank you for saving<br>this moment.</p>
+    <div class="save-modal-divider"></div>
+    <p class="save-modal-msg">
+      We truly wish a beautiful day<br>ahead for you.
+    </p>
+    <button class="save-modal-close" id="save-modal-close">Continue →</button>
+  </div>
+</div>
+
+<!-- ====================================================
+     JAVASCRIPT APPLICATION LAYER
+
+     Architecture:
+     ─ Security: All user text enters DOM via textContent, never innerHTML.
+       sanitize() is available for rare innerHTML cases.
+     ─ Storage isolation: only loadData()/saveData() touch localStorage.
+       Swap to cloud backend by editing only those two functions.
+     ─ Schema extensibility: entries carry metrics:{} bag. Adding sleep,
+       exercise, or journaling = new key, no migration, no existing data touched.
+     ─ Theme: 100% CSS variable overrides — JS never references colour values.
+     ─ Modals: custom in-page confirm modal — never relies on browser confirm().
+     ==================================================== -->
+<script>
+'use strict';
+
+/* --------------------------------------------------
+   SECURITY: HTML SANITIZER
+   Escapes any string before innerHTML insertion.
+   Prefer textContent; use this only when HTML structure is needed.
+-------------------------------------------------- */
+function sanitize(str) {
+  const d = document.createElement('div');
+  d.textContent = String(str ?? '');
+  return d.innerHTML;
+}
+
+/* --------------------------------------------------
+   CONSTANTS
+-------------------------------------------------- */
+const STORAGE_KEY = 'wellspring_v1';
+
+const PALETTE = [
+  '#C4714A','#D4A853','#7A9E7E','#7899BE','#A090C0',
+  '#D86858','#8E7A6F','#5C8A8A','#C07A9E','#6B8E5A'
+];
+
+const DEFAULT_MOODS = [
+  { id:'default-anxious',   label:'Anxious',   color:'#E8A068' },
+  { id:'default-sad',       label:'Sad',        color:'#7899BE' },
+  { id:'default-tired',     label:'Tired',      color:'#A090C0' },
+  { id:'default-calm',      label:'Calm',       color:'#7AA882' },
+  { id:'default-content',   label:'Content',    color:'#C4B870' },
+  { id:'default-happy',     label:'Happy',      color:'#E0C060' },
+  { id:'default-energetic', label:'Energetic',  color:'#D86858' },
+];
+
+/* --------------------------------------------------
+   DATA LAYER — single source of truth for persistence.
+   ONLY these two functions read/write storage.
+   To migrate to Supabase/Firebase: edit ONLY these two functions.
+-------------------------------------------------- */
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function saveData(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    showToast('⚠️ Could not save — storage may be full.');
+  }
+}
+
+function initData() {
+  const existing = loadData();
+  if (existing) return existing;
+  const now = new Date().toISOString();
+  const fresh = {
+    version: 1,
+    moods: DEFAULT_MOODS.map(m => ({ ...m, isDefault:true, isActive:true, createdAt:now })),
+    entries: [],
+    /*
+      Future feature namespaces — already reserved in schema so adding
+      sleep, exercise, or journaling requires NO data migration:
+        sleepLogs:     []
+        exerciseLogs:  []
+        journalEntries:[]
+    */
+    meta: { createdAt: now }
+  };
+  saveData(fresh);
+  return fresh;
+}
+
+/* --------------------------------------------------
+   APP STATE
+-------------------------------------------------- */
+let appData         = initData();
+let waterCount      = 0;           // always Number, always integer ≥ 0
+let feltFull        = null;        // 'yes' | 'no' | null
+let selectedMoods   = new Set();   // Set<moodId string>
+let ephemeralMoods  = [];          // quick-added moods for this session only
+let selectedColor   = PALETTE[0];
+let historyRange    = 'all';       // 'all' | '7' | '30'
+let historyMoodFilter = null;      // null = all moods, or moodId string
+let isDark          = false;
+
+/* --------------------------------------------------
+   UTILITY
+-------------------------------------------------- */
+function generateId() {
+  // alphanumeric — safe in data-* attrs, CSS selectors, and event closures
+  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7);
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', {
+    weekday:'long', month:'long', day:'numeric'
+  });
+}
+
+function formatTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+}
+
+/*
+  Renders the meal-time field from stored data — handles both formats:
+    New: plain string e.g. "Afternoon" (since this version)
+    Old: ISO 8601 timestamp from the previous datetime-local input
+  This ensures old entries continue to render correctly with no migration.
+*/
+function renderMealTime(lastMealTime) {
+  if (!lastMealTime) return 'Meal not recorded';
+  if (/^\d{4}-/.test(lastMealTime)) {
+    const d = new Date(lastMealTime);
+    return isNaN(d.getTime()) ? String(lastMealTime)
+      : d.toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  return String(lastMealTime); // time-of-day string — safe, computed value
+}
+
+let toastTimer = null;
+function showToast(msg, duration = 2400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; // textContent — no XSS risk
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+/* --------------------------------------------------
+   CUSTOM CONFIRM MODAL
+   Replaces window.confirm() throughout the app.
+   confirm() is unreliable: it is silently suppressed by browsers in iframes,
+   during GitHub Pages previews, and on some Android WebViews — causing
+   delete buttons to appear broken. This modal is always visible and reliable.
+-------------------------------------------------- */
+const modalOverlay  = document.getElementById('modal-overlay');
+const modalTitle    = document.getElementById('modal-title');
+const modalMsg      = document.getElementById('modal-msg');
+const modalConfirm  = document.getElementById('modal-confirm');
+const modalCancel   = document.getElementById('modal-cancel');
+
+function showConfirmModal({ title, message, confirmLabel = 'Delete', onConfirm }) {
+  modalTitle.textContent   = title;
+  modalMsg.textContent     = message;
+  modalConfirm.textContent = confirmLabel;
+  modalOverlay.classList.add('visible');
+  modalConfirm.focus();
+
+  // Clone buttons to remove any previous event listeners cleanly
+  const newConfirm = modalConfirm.cloneNode(true);
+  const newCancel  = modalCancel.cloneNode(true);
+  modalConfirm.replaceWith(newConfirm);
+  modalCancel.replaceWith(newCancel);
+
+  function close() { modalOverlay.classList.remove('visible'); }
+
+  newConfirm.addEventListener('click', () => { close(); onConfirm(); });
+  newCancel.addEventListener('click',  close);
+  // Also close on backdrop click
+  modalOverlay.addEventListener('click', function onBdClick(e) {
+    if (e.target === modalOverlay) { close(); modalOverlay.removeEventListener('click', onBdClick); }
+  });
+}
+
+/* --------------------------------------------------
+   SAVE CELEBRATION MODAL
+-------------------------------------------------- */
+const saveModalOverlay = document.getElementById('save-modal-overlay');
+const saveModalClose   = document.getElementById('save-modal-close');
+
+function showSaveModal() {
+  saveModalOverlay.classList.add('visible');
+  saveModalClose.focus();
+}
+
+function closeSaveModal() {
+  saveModalOverlay.classList.remove('visible');
+}
+
+saveModalClose.addEventListener('click', closeSaveModal);
+saveModalOverlay.addEventListener('click', e => {
+  if (e.target === saveModalOverlay) closeSaveModal();
+});
+
+/* --------------------------------------------------
+   THEME
+-------------------------------------------------- */
+(function restoreTheme() {
+  if (localStorage.getItem('wellspring_theme') === 'dark') applyTheme(true);
+})();
+
+function applyTheme(dark) {
+  isDark = dark;
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('theme-icon').textContent  = dark ? '☀️' : '🌙';
+  document.getElementById('theme-label').textContent = dark ? 'Day' : 'Night';
+  document.getElementById('theme-toggle-btn').setAttribute(
+    'aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode'
+  );
+  localStorage.setItem('wellspring_theme', dark ? 'dark' : 'light');
+}
+
+document.getElementById('theme-toggle-btn').addEventListener('click', () => applyTheme(!isDark));
+
+/* --------------------------------------------------
+   TAB NAVIGATION
+-------------------------------------------------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active'); b.setAttribute('aria-selected','false');
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'history')  { renderMoodFilter(); renderHistory(); }
+    if (btn.dataset.tab === 'settings') renderSettings();
+  });
+});
+
+/* --------------------------------------------------
+   WATER — direct typed input + +/− helpers
+-------------------------------------------------- */
+function getWaterInput() {
+  return document.getElementById('water-input');
+}
+
+/* Called by the +/− buttons */
+function changeWater(delta) {
+  const newVal = Math.max(0, Math.min(99, waterCount + delta));
+  waterCount = newVal;
+  getWaterInput().value = waterCount;
+  renderBottles();
+}
+
+/* Called while the user types in the input field */
+function onWaterInput(el) {
+  const parsed = parseInt(el.value, 10);
+  // Update count immediately but don't clamp while typing (they may be mid-type)
+  waterCount = isNaN(parsed) ? 0 : Math.max(0, Math.min(99, parsed));
+  renderBottles();
+}
+
+/* Called when the input loses focus — clamp and normalise the displayed value */
+function onWaterBlur(el) {
+  const parsed = parseInt(el.value, 10);
+  waterCount = isNaN(parsed) ? 0 : Math.max(0, Math.min(99, parsed));
+  el.value = waterCount; // show clean clamped value
+  renderBottles();
+}
+
+function renderBottles() {
+  const row = document.getElementById('bottle-row');
+  // Remove bottles that no longer exist
+  while (row.children.length > waterCount) row.removeChild(row.lastChild);
+  // Add new bottles (only newly added ones get the pop animation)
+  while (row.children.length < waterCount) {
+    const span = document.createElement('span');
+    span.className   = 'bottle';
+    span.textContent = '💧';
+    span.setAttribute('aria-hidden','true');
+    row.appendChild(span);
+  }
+}
+
+/* --------------------------------------------------
+   FULLNESS TOGGLE
+-------------------------------------------------- */
+function selectFullness(val) {
+  feltFull = (feltFull === val) ? null : val; // re-click = deselect
+  const y = document.getElementById('btn-full-yes');
+  const n = document.getElementById('btn-full-no');
+  y.className = 'toggle-btn' + (feltFull === 'yes' ? ' selected-yes' : '');
+  n.className = 'toggle-btn' + (feltFull === 'no'  ? ' selected-no'  : '');
+  y.setAttribute('aria-pressed', feltFull === 'yes' ? 'true' : 'false');
+  n.setAttribute('aria-pressed', feltFull === 'no'  ? 'true' : 'false');
+}
+
+/* --------------------------------------------------
+   MOOD CHIPS (Log tab)
+-------------------------------------------------- */
+function renderMoodChips() {
+  const container = document.getElementById('mood-chip-container');
+  container.innerHTML = '';
+  const allChips = [...appData.moods.filter(m => m.isActive), ...ephemeralMoods];
+
+  allChips.forEach(mood => {
+    const sel = selectedMoods.has(mood.id);
+    const btn = document.createElement('button');
+    btn.className = 'mood-chip' + (sel ? ' selected' : '');
+    btn.textContent = mood.label; // textContent — XSS safe
+    btn.setAttribute('role','checkbox');
+    btn.setAttribute('aria-checked', sel ? 'true' : 'false');
+    applyChipStyle(btn, mood.color, sel);
+    btn.addEventListener('click', () => toggleMoodChip(mood.id, mood.color, btn));
+    container.appendChild(btn);
+  });
+}
+
+function applyChipStyle(btn, color, selected) {
+  if (selected) {
+    btn.style.background  = color;
+    btn.style.borderColor = color;
+    btn.style.color       = '#fff';
+  } else {
+    btn.style.background  = '';
+    btn.style.borderColor = color + '80';
+    btn.style.color       = color;
+  }
+}
+
+function toggleMoodChip(id, color, btn) {
+  const nowSelected = !selectedMoods.has(id);
+  nowSelected ? selectedMoods.add(id) : selectedMoods.delete(id);
+  btn.classList.toggle('selected', nowSelected);
+  btn.setAttribute('aria-checked', nowSelected.toString());
+  applyChipStyle(btn, color, nowSelected);
+}
+
+function addQuickMood() {
+  const input = document.getElementById('custom-mood-input');
+  const label = input.value.trim();
+  if (!label) return;
+
+  const allLabels = [
+    ...appData.moods.map(m => m.label.toLowerCase()),
+    ...ephemeralMoods.map(m => m.label.toLowerCase())
+  ];
+  if (allLabels.includes(label.toLowerCase())) {
+    showToast('That mood is already in your list.'); input.value = ''; return;
+  }
+  const color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+  const temp  = { id: generateId(), label, color, isEphemeral: true };
+  ephemeralMoods.push(temp);
+  selectedMoods.add(temp.id);
+  input.value = '';
+  renderMoodChips();
+}
+
+/* --------------------------------------------------
+   SAVE ENTRY
+-------------------------------------------------- */
+function saveEntry() {
+  // Clamp waterCount one final time (typed input edge cases)
+  const inputEl = getWaterInput();
+  const parsed  = parseInt(inputEl.value, 10);
+  waterCount    = isNaN(parsed) ? 0 : Math.max(0, Math.min(99, parsed));
+
+  const entry = {
+    id:              generateId(),
+    timestamp:       new Date().toISOString(),
+    selectedMoodIds: [...selectedMoods],
+    food: {
+      lastMealTime: document.getElementById('meal-time').value || null,
+      feltFull:     feltFull
+    },
+    water: {
+      bottles: waterCount   // always stored as Number
+    },
+    /*
+      metrics is the extensibility bag for future features.
+      sleep, exercise, journaling data goes here without touching existing entries.
+    */
+    metrics: {}
+  };
+
+  // Promote selected ephemeral moods → permanent mood list
+  ephemeralMoods.forEach(em => {
+    if (selectedMoods.has(em.id)) {
+      appData.moods.push({
+        id: em.id, label: em.label, isDefault: false,
+        isActive: true, color: em.color, createdAt: entry.timestamp
+      });
+    }
+  });
+
+  appData.entries.unshift(entry); // newest first
+  saveData(appData);
+  resetLogForm();
+  showSaveModal();          // beautiful celebration modal
+}
+
+function resetLogForm() {
+  document.getElementById('meal-time').value = '';
+  feltFull = null;
+  document.getElementById('btn-full-yes').className = 'toggle-btn';
+  document.getElementById('btn-full-no').className  = 'toggle-btn';
+  document.getElementById('btn-full-yes').setAttribute('aria-pressed','false');
+  document.getElementById('btn-full-no').setAttribute('aria-pressed','false');
+  waterCount = 0;
+  getWaterInput().value = 0;
+  renderBottles();
+  selectedMoods.clear();
+  ephemeralMoods = [];
+  renderMoodChips();
+}
+
+/* --------------------------------------------------
+   HISTORY — Time range filter buttons
+-------------------------------------------------- */
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    historyRange = btn.dataset.range;
+    renderHistory();
+  });
+});
+
+/* --------------------------------------------------
+   HISTORY — Mood filter
+   Rendered dynamically so it always reflects current moods.
+   Clicking a mood chip filters entries to only those that include that mood.
+   Clicking again (or "All moods") clears the filter.
+-------------------------------------------------- */
+function renderMoodFilter() {
+  const row   = document.getElementById('mood-filter-row');
+  const label = document.getElementById('mood-filter-label');
+  row.innerHTML = '';
+
+  // Collect only moods that appear in at least one entry
+  const usedMoodIds = new Set(appData.entries.flatMap(e => e.selectedMoodIds ?? []));
+  const usedMoods   = appData.moods.filter(m => usedMoodIds.has(m.id));
+
+  if (usedMoods.length === 0) {
+    label.style.display = 'none'; return;
+  }
+  label.style.display = 'block';
+
+  // "All moods" chip
+  const allChip = document.createElement('button');
+  allChip.className   = 'mood-filter-chip' + (historyMoodFilter === null ? ' active' : '');
+  allChip.textContent = 'All moods';
+  allChip.style.border       = '1.5px solid var(--clr-border)';
+  allChip.style.color        = historyMoodFilter === null ? 'var(--clr-brown)' : 'var(--clr-muted)';
+  allChip.style.background   = historyMoodFilter === null ? 'var(--clr-parchment-2)' : 'transparent';
+  allChip.addEventListener('click', () => {
+    historyMoodFilter = null;
+    renderMoodFilter();
+    renderHistory();
+  });
+  row.appendChild(allChip);
+
+  // One chip per used mood
+  usedMoods.forEach(mood => {
+    const chip = document.createElement('button');
+    const isActive = historyMoodFilter === mood.id;
+    chip.className   = 'mood-filter-chip' + (isActive ? ' active' : '');
+    chip.textContent = mood.label; // textContent — XSS safe
+    chip.style.borderColor = mood.color + (isActive ? '' : '90');
+    chip.style.color       = isActive ? '#fff' : mood.color;
+    chip.style.background  = isActive ? mood.color : 'transparent';
+    chip.setAttribute('aria-pressed', isActive.toString());
+    chip.addEventListener('click', () => {
+      historyMoodFilter = isActive ? null : mood.id; // toggle off if already active
+      renderMoodFilter();
+      renderHistory();
+    });
+    row.appendChild(chip);
+  });
+}
+
+/* --------------------------------------------------
+   HISTORY — Entry list
+-------------------------------------------------- */
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  container.innerHTML = '';
+
+  let entries = [...appData.entries];
+
+  // Apply time range filter
+  if (historyRange !== 'all') {
+    const cutoff = Date.now() - parseInt(historyRange, 10) * 86_400_000;
+    entries = entries.filter(e => new Date(e.timestamp).getTime() >= cutoff);
+  }
+
+  // Apply mood filter
+  if (historyMoodFilter !== null) {
+    entries = entries.filter(e =>
+      Array.isArray(e.selectedMoodIds) && e.selectedMoodIds.includes(historyMoodFilter)
+    );
+  }
+
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    // Static strings only in innerHTML here — no user data
+    empty.innerHTML = '<div class="empty-icon">📖</div>'
+      + '<div class="empty-title">Nothing here yet.</div>'
+      + '<span>Your logged moments will appear here.</span>';
+    container.appendChild(empty);
+    return;
+  }
+
+  entries.forEach(entry => {
+    const moodObjs    = (entry.selectedMoodIds ?? [])
+      .map(id => appData.moods.find(m => m.id === id))
+      .filter(Boolean);
+    const borderColor = moodObjs[0]?.color || '#D8CCBA';
+
+    const card = document.createElement('div');
+    card.className = 'entry-card';
+    card.style.borderLeft = `4px solid ${borderColor}`;
+
+    // Header row
+    const header  = document.createElement('div');
+    header.className = 'entry-header';
+
+    const metaDiv = document.createElement('div');
+    const dateEl  = document.createElement('div');
+    dateEl.className   = 'entry-date';
+    dateEl.textContent = formatDate(entry.timestamp); // computed — safe
+    const timeEl  = document.createElement('div');
+    timeEl.className   = 'entry-time';
+    timeEl.textContent = 'Logged at ' + formatTime(entry.timestamp);
+    metaDiv.appendChild(dateEl);
+    metaDiv.appendChild(timeEl);
+
+    const delBtn  = document.createElement('button');
+    delBtn.className   = 'entry-delete';
+    delBtn.textContent = '✕';
+    delBtn.setAttribute('aria-label', 'Delete this entry');
+    delBtn.setAttribute('title',      'Delete this entry');
+    // Closure captures entry.id — no inline handler, no injection risk
+    delBtn.addEventListener('click', () => deleteEntry(entry.id));
+    header.appendChild(metaDiv);
+    header.appendChild(delBtn);
+    card.appendChild(header);
+
+    // Mood tags
+    const moodsRow = document.createElement('div');
+    moodsRow.className = 'entry-moods';
+    if (moodObjs.length === 0) {
+      moodsRow.style.cssText = 'color:var(--clr-muted);font-size:0.78rem;';
+      moodsRow.textContent   = 'No mood recorded';
+    } else {
+      moodObjs.forEach(m => {
+        const tag = document.createElement('span');
+        tag.className      = 'entry-mood-tag';
+        tag.style.background = m.color;
+        tag.textContent    = m.label; // textContent — XSS safe
+        moodsRow.appendChild(tag);
+      });
+    }
+    card.appendChild(moodsRow);
+
+    // Stats row
+    const statsRow = document.createElement('div');
+    statsRow.className = 'entry-stats';
+
+    const mealStat   = document.createElement('span');
+    mealStat.className = 'entry-stat';
+    const mealIcon   = document.createElement('span');
+    mealIcon.textContent = '🍽';
+    mealIcon.setAttribute('aria-hidden','true');
+    const mealTxt    = document.createElement('span');
+    const fullnessSuffix = entry.food?.feltFull === 'yes' ? ' · Felt full'
+                         : entry.food?.feltFull === 'no'  ? ' · Not full' : '';
+    mealTxt.textContent = renderMealTime(entry.food?.lastMealTime) + fullnessSuffix;
+    mealStat.appendChild(mealIcon);
+    mealStat.appendChild(mealTxt);
+
+    const waterStat  = document.createElement('span');
+    waterStat.className = 'entry-stat';
+    const waterIcon  = document.createElement('span');
+    waterIcon.textContent = '💧';
+    waterIcon.setAttribute('aria-hidden','true');
+    const waterTxt   = document.createElement('span');
+    // Ensure bottles is treated as a number even if old entries stored it differently
+    const bottles    = Number(entry.water?.bottles ?? 0);
+    waterTxt.textContent = `${bottles} bottle${bottles !== 1 ? 's' : ''}`;
+    waterStat.appendChild(waterIcon);
+    waterStat.appendChild(waterTxt);
+
+    statsRow.appendChild(mealStat);
+    statsRow.appendChild(waterStat);
+    card.appendChild(statsRow);
+    container.appendChild(card);
+  });
+}
+
+function deleteEntry(id) {
+  showConfirmModal({
+    title:        'Remove this entry?',
+    message:      'This action cannot be undone. The entry will be permanently deleted.',
+    confirmLabel: 'Delete',
+    onConfirm: () => {
+      appData.entries = appData.entries.filter(e => e.id !== id);
+      saveData(appData);
+      renderMoodFilter(); // update filter since used moods may have changed
+      renderHistory();
+      showToast('Entry removed.');
+    }
+  });
+}
+
+/* --------------------------------------------------
+   SETTINGS
+-------------------------------------------------- */
+function renderSettings() {
+  renderMoodSettingsList();
+  renderColorPicker();
+}
+
+function renderMoodSettingsList() {
+  const list = document.getElementById('mood-settings-list');
+  list.innerHTML = '';
+
+  appData.moods.forEach(mood => {
+    const row = document.createElement('div');
+    row.className  = 'mood-setting-row' + (mood.isActive ? '' : ' inactive');
+    row.dataset.id = mood.id;
+    row.setAttribute('role','listitem');
+
+    const swatch = document.createElement('div');
+    swatch.className        = 'mood-setting-swatch';
+    swatch.style.background = mood.color;
+    swatch.setAttribute('aria-hidden','true');
+    row.appendChild(swatch);
+
+    const labelEl = document.createElement('span');
+    labelEl.className   = 'mood-setting-label';
+    labelEl.textContent = mood.label; // textContent — XSS safe
+    row.appendChild(labelEl);
+
+    const badge = document.createElement('span');
+    badge.className   = 'mood-setting-badge';
+    badge.textContent = mood.isDefault ? 'Default' : 'Custom';
+    row.appendChild(badge);
+
+    const switchWrap = document.createElement('label');
+    switchWrap.className = 'switch';
+    switchWrap.title = (mood.isActive ? 'Deactivate' : 'Activate') + ' ' + mood.label;
+    const checkbox = document.createElement('input');
+    checkbox.type    = 'checkbox';
+    checkbox.checked = mood.isActive;
+    checkbox.setAttribute('aria-label', (mood.isActive ? 'Deactivate ' : 'Activate ') + mood.label);
+    checkbox.addEventListener('change', e => toggleMoodActive(mood.id, e.target.checked));
+    const sliderSpan = document.createElement('span');
+    sliderSpan.className = 'slider';
+    switchWrap.appendChild(checkbox);
+    switchWrap.appendChild(sliderSpan);
+    row.appendChild(switchWrap);
+
+    if (!mood.isDefault) {
+      const delBtn = document.createElement('button');
+      delBtn.className   = 'btn-icon';
+      delBtn.textContent = '✕';
+      delBtn.setAttribute('aria-label','Permanently delete ' + mood.label);
+      delBtn.setAttribute('title',      'Delete permanently');
+      delBtn.addEventListener('click', () => deleteMood(mood.id));
+      row.appendChild(delBtn);
+    }
+
+    list.appendChild(row);
+  });
+}
+
+function toggleMoodActive(id, checked) {
+  const mood = appData.moods.find(m => m.id === id);
+  if (!mood) return;
+  mood.isActive = checked;
+  saveData(appData);
+  // Targeted DOM update — avoids full list re-render
+  const row = document.querySelector(`.mood-setting-row[data-id="${CSS.escape(id)}"]`);
+  if (row) row.className = 'mood-setting-row' + (checked ? '' : ' inactive');
+  renderMoodChips();
+}
+
+function deleteMood(id) {
+  const mood = appData.moods.find(m => m.id === id);
+  if (!mood || mood.isDefault) return;
+  showConfirmModal({
+    title:        `Delete "${mood.label}"?`,
+    message:      'This mood will be permanently removed. Past entries that used it are kept intact.',
+    confirmLabel: 'Delete',
+    onConfirm: () => {
+      appData.moods = appData.moods.filter(m => m.id !== id);
+      saveData(appData);
+      selectedMoods.delete(id);
+      // If this mood was the active history filter, clear the filter
+      if (historyMoodFilter === id) historyMoodFilter = null;
+      renderMoodSettingsList();
+      renderMoodChips();
+      showToast('Mood deleted.');
+    }
+  });
+}
+
+function renderColorPicker() {
+  const row = document.getElementById('new-mood-color-row');
+  row.innerHTML = '';
+  PALETTE.forEach(hex => {
+    const dot = document.createElement('button');
+    dot.className = 'color-dot' + (hex === selectedColor ? ' selected' : '');
+    dot.style.background = hex;
+    dot.setAttribute('aria-label',  'Choose colour ' + hex);
+    dot.setAttribute('aria-pressed', hex === selectedColor ? 'true' : 'false');
+    dot.addEventListener('click', () => { selectedColor = hex; renderColorPicker(); });
+    row.appendChild(dot);
+  });
+}
+
+function addNewMood() {
+  const input = document.getElementById('new-mood-name');
+  const label = input.value.trim();
+  if (!label) { showToast('Please enter a mood name.'); return; }
+  if (appData.moods.some(m => m.label.toLowerCase() === label.toLowerCase())) {
+    showToast('That mood already exists!'); return;
+  }
+  appData.moods.push({
+    id: generateId(), label,
+    isDefault: false, isActive: true,
+    color: selectedColor, createdAt: new Date().toISOString()
+  });
+  saveData(appData);
+  input.value = '';
+  renderMoodSettingsList();
+  renderMoodChips();
+  showToast(`"${label}" added to your moods.`);
+}
+
+/* --------------------------------------------------
+   DATA MANAGEMENT
+-------------------------------------------------- */
+function exportData() {
+  const blob   = new Blob([JSON.stringify(appData, null, 2)], { type:'application/json' });
+  const url    = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href     = url;
+  anchor.download = `wellspring_backup_${new Date().toISOString().slice(0,10)}.json`;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+  showToast('Backup exported!');
+}
+
+function promptClearAllData() {
+  showConfirmModal({
+    title:        'Clear all data?',
+    message:      'This will permanently delete every entry and all custom moods. This cannot be undone.',
+    confirmLabel: 'Clear everything',
+    onConfirm: () => {
+      localStorage.removeItem(STORAGE_KEY);
+      appData = initData();
+      historyMoodFilter = null;
+      resetLogForm();
+      // Re-render history and filter if user is on that tab
+      const histTab = document.getElementById('tab-history');
+      if (histTab && histTab.classList.contains('active')) {
+        renderMoodFilter();
+        renderHistory();
+      }
+      showToast('All data cleared. Fresh start.');
+    }
+  });
+}
+
+/* --------------------------------------------------
+   INIT — run on page load
+-------------------------------------------------- */
+renderMoodChips();
+renderBottles();
+</script>
+</body>
+</html>
